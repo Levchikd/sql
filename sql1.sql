@@ -1,204 +1,250 @@
-SELECT 
-    *
-FROM
-    employees
-WHERE
-    gender = 'F'
-        AND (first_name = 'Kellie'
-        OR first_name = 'Aruna');
-        
-SELECT 
-    *
-FROM
-    employees
-WHERE
-    first_name IN ('Denis' , 'Elvis');
-    
-SELECT 
-    *
-FROM
-    employees
-WHERE
-    first_name NOT IN ('John' , 'Mark', 'Jacob');
-    
-USE employees; 
-    
-SELECT 
-    *
-FROM
-    employees
-WHERE
-    first_name LIKE ('Mark%');
-    
-SELECT 
-    *
-FROM
-    employees
-WHERE
-    hire_date LIKE ('%2000%');
-    
-SELECT 
-    *
-FROM
-    employees
-WHERE
-    emp_no LIKE ('1000_');
+COMMIT;
 
-SELECT 
-    *
-FROM
-    employees
-WHERE
-    first_name LIKE ('%Jack%');
-    
-SELECT 
-    *
-FROM
-    employees
-WHERE
-    first_name NOT LIKE ('%Jack%');
-    
-SELECT 
-    *
-FROM
-    salaries
-WHERE
-    salary BETWEEN 66000 AND 70000;
-    
-SELECT 
-    *
-FROM
-    salaries
-WHERE
-    emp_no NOT BETWEEN 10004 AND 10012;
-    
-SELECT 
-   dept_name
-FROM
-    departments
-WHERE
-    dept_no BETWEEN 'd003' AND 'd006';
-    
-SELECT 
-   dept_name
-FROM
-    departments
-WHERE
-    dept_no IS NOT NULL;
-    
-SELECT 
-   *
-FROM
-    employees
-WHERE
-    hire_date > '2000-01-01' AND gender = 'F';
+ALTER TABLE departments_dup
+DROP PRIMARY KEY;
 
-SELECT 
-   *
-FROM
-    salaries
-WHERE
-    salary > 150000;
-    
-SELECT DISTINCT
-   hire_date
-FROM
-    employees;
-    
-SELECT 
-    COUNT(*)
-FROM
-    salaries
-WHERE
-    salary >= 100000;
-    
-SELECT 
-    COUNT(*)
-FROM
-    dept_manager;
+ALTER TABLE departments_dup
+CHANGE COLUMN dept_name dept_name VARCHAR(40) NULL;
 
-SELECT 
-    *
-FROM
-    employees
-ORDER BY hire_date DESC;
+ALTER TABLE departments_dup
+CHANGE COLUMN dept_no dept_no CHAR(4) NULL;
 
-SELECT 
-    salary, COUNT(emp_no) AS emps_with_same_salary
-FROM
-    salaries
-WHERE
-    salary > 80000
-GROUP BY salary
-ORDER BY salary;
-
-SELECT 
-    emp_no
-FROM
-    salaries
-GROUP BY emp_no
-HAVING AVG(salary) > 120000;
-
-SELECT 
-    emp_no
-FROM
-    dept_emp
-WHERE
-    from_date > '2000-01-01'
-GROUP BY emp_no
-HAVING COUNT(from_date) > 1
-LIMIT 100;
-
-SELECT 
-    *
-FROM
-    titles;
-
-Insert into titles
+insert into departments_dup
 (
-	emp_no,
-    title,
-    from_date
+	dept_name
 )
 Values
 (
-	999903,
-    'Senior Engineer',
-    '1997-10-01'
+	'Public Relations'
 );
 
-Create table departments_dup
-(
-	  `dept_no` char(4) NOT NULL,
-  `dept_name` varchar(40) NOT NULL,
-  PRIMARY KEY (`dept_no`),
-  UNIQUE KEY `dept_name` (`dept_name`)
-);
+DELETE FROM departments_dup 
+WHERE
+    dept_no = 'd002'; 
 
-Insert	into departments_dup
-(
-	dept_no,
-	dept_name
-)
+INSERT INTO departments_dup(dept_no) VALUES ('d010'), ('d011');
+
+DROP TABLE IF EXISTS dept_manager_dup;
+
+CREATE TABLE dept_manager_dup (
+    emp_no INT(11) NOT NULL,
+    dept_no CHAR(4) NULL,
+    from_date DATE NOT NULL,
+    to_date DATE NULL
+);
+ 
+INSERT INTO dept_manager_dup
+select * from dept_manager;
+
+ 
+INSERT INTO dept_manager_dup (emp_no, from_date)
+VALUES 
+	(999904, '2017-01-01'),
+	(999905, '2017-01-01'),
+    (999906, '2017-01-01'),
+	(999907, '2017-01-01');
+
+DELETE FROM dept_manager_dup 
+WHERE
+    dept_no = 'd001';
+
+SELECT 
+    e.emp_no, e.first_name, e.last_name, dm.dept_no, e.hire_date
+FROM
+    employees e
+        JOIN
+    dept_manager dm ON e.emp_no = dm.emp_no;
+
+SELECT
+	e.emp_no, e.first_name, e.last_name, d.dept_no, d.from_date
+FROM
+	employees e
+		LEFT JOIN
+	dept_manager d ON e.emp_no = d.emp_no
+WHERE
+	e.last_name = 'Markovitch'
+ORDER BY 
+	e.emp_no DESC;
+
+SELECT d.*, m.*
+FROM
+		departments d
+			CROSS JOIN
+		dept_manager m
+WHERE 
+	d.dept_no = 'd009' ;
+
+SELECT 
+    e.first_name,
+    e.last_name,
+    e.hire_date,
+    t.title,
+    m.from_date,
+    d.dept_name
+FROM
+    employees e
+        JOIN
+    dept_manager m ON e.emp_no = m.emp_no
+        JOIN
+    departments d ON d.dept_no = m.dept_no
+        JOIN
+    titles t ON t.emp_no = e.emp_no
+WHERE 
+	t.title = 'Manager';
+    
+SELECT 
+    e.gender, COUNT(dm.emp_no)
+FROM
+    employees e
+        JOIN
+    dept_manager dm ON e.emp_no = dm.emp_no
+GROUP BY gender;
+
 SELECT 
     *
 FROM
-    departments;
+    (SELECT 
+        e.emp_no,
+            e.first_name,
+            e.last_name,
+            NULL AS dept_no,
+            NULL AS from_date
+    FROM
+        employees e
+    WHERE
+        last_name = 'Denis' UNION SELECT 
+        NULL AS emp_no,
+            NULL AS first_name,
+            NULL AS last_name,
+            dm.dept_no,
+            dm.from_date
+    FROM
+        dept_manager dm) AS a
+ORDER BY - a.emp_no DESC;
 
-Insert into departments
-(
-	dept_no,
-    dept_name
-)
-VALUES
-(
-	'd010',
-    'Business analysis'
-);
+use employees;
 
 SELECT 
     *
 FROM
-    departments
-ORDER BY dept_no DESC;
+    dept_manager
+WHERE
+    emp_no IN 
+    (
+		SELECT 
+            *
+        FROM
+            employees
+        WHERE
+            hire_date BETWEEN '1990-01-01' AND '1995-01-01'
+	);
+	
+    
+ SELECT 
+    e.*
+FROM
+    employees e
+WHERE
+	EXISTS
+    (
+		SELECT 
+            *
+        FROM
+            titles t
+        WHERE
+            e.emp_no = t.emp_no and title = 'Assistant Engineer'
+	);
+	  
+DROP TABLE IF EXISTS emp_manager;
+
+CREATE TABLE IF NOT EXISTS emp_manager (
+    emp_no INT(11) NOT NULL,
+    dept_no CHAR(4) NULL,
+    manager_no INT(11)
+);
+
+INSERT INTO emp_manager
+SELECT 
+    u.*
+FROM
+    (SELECT 
+        a.*
+    FROM
+        (SELECT 
+        e.emp_no AS employee_ID,
+            MIN(de.dept_no) AS department_code,
+            (SELECT 
+                    emp_no
+                FROM
+                    dept_manager
+                WHERE
+                    emp_no = 110022) AS manager_ID
+    FROM
+        employees e
+    JOIN dept_emp de ON e.emp_no = de.emp_no
+    WHERE
+        e.emp_no <= 10020
+    GROUP BY e.emp_no
+    ORDER BY e.emp_no) AS a UNION SELECT 
+        b.*
+    FROM
+        (SELECT 
+        e.emp_no AS employee_ID,
+            MIN(de.dept_no) AS department_code,
+            (SELECT 
+                    emp_no
+                FROM
+                    dept_manager
+                WHERE
+                    emp_no = 110039) AS manager_ID
+    FROM
+        employees e
+    JOIN dept_emp de ON e.emp_no = de.emp_no
+    WHERE
+        e.emp_no > 10020
+    GROUP BY e.emp_no
+    ORDER BY e.emp_no
+    LIMIT 20) AS b UNION SELECT 
+        c.*
+    FROM
+        (SELECT 
+        e.emp_no AS employee_ID,
+            MIN(de.dept_no) AS department_code,
+            (SELECT 
+                    emp_no
+                FROM
+                    dept_manager
+                WHERE
+                    emp_no = 110039) AS manager_ID
+    FROM
+        employees e
+    JOIN dept_emp de ON e.emp_no = de.emp_no
+    WHERE
+        e.emp_no = 110022
+    GROUP BY e.emp_no) AS c UNION SELECT 
+        d.*
+    FROM
+        (SELECT 
+        e.emp_no AS employee_ID,
+            MIN(de.dept_no) AS department_code,
+            (SELECT 
+                    emp_no
+                FROM
+                    dept_manager
+                WHERE
+                    emp_no = 110022) AS manager_ID
+    FROM
+        employees e
+    JOIN dept_emp de ON e.emp_no = de.emp_no
+    WHERE
+        e.emp_no = 110039
+    GROUP BY e.emp_no) AS d) as u;
+
+CREATE OR REPLACE VIEW average_salary_managers AS
+SELECT 
+    ROUND(AVG(salary), 2)
+FROM
+    salaries s
+        JOIN
+    dept_manager m ON s.emp_no = m.emp_no;
     
